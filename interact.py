@@ -61,8 +61,7 @@ def build_input_from_segments(history, reply, tokenizer, with_eos=True):
     bos, eos, pad, speaker1, speaker2 = tokenizer.convert_tokens_to_ids(SPECIAL_TOKENS)
     sequence = [[bos]] + history + [reply + ([eos] if with_eos else [])]
     sequence = [sequence[0]] + [[speaker2 if i % 2 else speaker1] + s for i, s in enumerate(sequence[1:])]
-    instance = {}
-    instance["input_ids"] = list(chain(*sequence))
+    instance = {"input_ids": list(chain(*sequence))}
     instance["token_type_ids"] = [bos] + [speaker2 if i % 2 else speaker1 for i, s in enumerate(sequence[1:])
                                           for _ in s]
     return instance, sequence
@@ -138,8 +137,8 @@ def run():
         if isinstance(obj, str):
             return tokenizer.convert_tokens_to_ids(tokenizer.tokenize(obj))
         if isinstance(obj, dict):
-            return dict((n, tokenize(o)) for n, o in obj.items())
-        return list(tokenize(o) for o in obj)
+            return {n: tokenize(o) for n, o in obj.items()}
+        return [tokenize(o) for o in obj]
 
     history = []
     while True:

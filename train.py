@@ -189,7 +189,9 @@ def train():
     RunningAverage(output_transform=lambda x: x[0]).attach(trainer, "loss")
     RunningAverage(output_transform=lambda x: x[1]).attach(trainer, "lr")
     metrics = {"nll": Loss(torch.nn.CrossEntropyLoss(ignore_index=-1), output_transform=lambda x: (x[0], x[1]))}
-    metrics.update({"average_nll": MetricsLambda(average_distributed_scalar, metrics["nll"], args)})
+    metrics["average_nll"] = MetricsLambda(
+        average_distributed_scalar, metrics["nll"], args
+    )
     metrics["average_ppl"] = MetricsLambda(math.exp, metrics["average_nll"])
     for name, metric in metrics.items():
         metric.attach(evaluator, name)
@@ -199,8 +201,12 @@ def train():
     if args.local_rank in [-1, 0]:
         pbar = ProgressBar(persist=True, mininterval=2)
         pbar.attach(trainer, metric_names=["loss", "lr"])
-        evaluator.add_event_handler(Events.COMPLETED,
-                                    lambda _: pbar.log_message("Validation: %s" % pformat(evaluator.state.metrics)))
+        evaluator.add_event_handler(
+            Events.COMPLETED,
+            lambda _: pbar.log_message(
+                f"Validation: {pformat(evaluator.state.metrics)}"
+            ),
+        )
 
         tb_logger = TensorboardLogger(log_dir=None)
         tb_logger.attach(trainer, log_handler=OutputHandler(tag="training", metric_names=["loss"]),
@@ -217,7 +223,7 @@ def train():
         trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler, {
             'mymodel': getattr(model, 'module', model)})  # "getattr" take care of distributed encapsulation
 
-        torch.save(args, tb_logger.writer.logdir + '/model_training_args.bin')
+        torch.save(args, f'{tb_logger.writer.logdir}/model_training_args.bin')
         getattr(model, 'module', model).config.to_json_file(os.path.join(tb_logger.writer.logdir, CONFIG_NAME))
         tokenizer.save_vocabulary(tb_logger.writer.logdir)
 

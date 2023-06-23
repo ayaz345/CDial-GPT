@@ -25,12 +25,8 @@ class WBDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
-        if self.lm_labels:
-            history = self.data[index][-2 * self.max_history:-1]
-            resposne = self.data[index][-1]
-        else:
-            history = self.data[index][-2 * self.max_history:-1]
-            resposne = []
+        resposne = self.data[index][-1] if self.lm_labels else []
+        history = self.data[index][-2 * self.max_history:-1]
         return self.process(history, resposne)
 
     def process(self, history, resposne, with_eos=True):
@@ -39,8 +35,7 @@ class WBDataset(Dataset):
         sequence = [[bos]] + history + [resposne + ([eos] if with_eos else [])]
         sequence = [sequence[0]] + [[speaker2 if i % 2 else speaker1] + s
                                     for i, s in enumerate(sequence[1:])]
-        instance = {}
-        instance["input_ids"] = list(chain(*sequence))
+        instance = {"input_ids": list(chain(*sequence))}
         instance["token_type_ids"] = [bos] + [speaker2 if i % 2 else speaker1 for i, s in
                                               enumerate(sequence[1:])
                                               for _ in s]
@@ -67,8 +62,8 @@ class DatasetBase(Dataset):
 
     def __init__(self, data_path=None):
         self.data_path = data_path
-        self.data_files = list()
-        self.data_files_offset = list()
+        self.data_files = []
+        self.data_files_offset = []
         self.data_len = 0
         self._check_files()
 
@@ -79,7 +74,7 @@ class DatasetBase(Dataset):
 
         if self.data_path:
             if not os.path.exists(self.data_path):
-                raise RuntimeError("Training files does not exist at " + self.data_path)
+                raise RuntimeError(f"Training files does not exist at {self.data_path}")
             prepare_files_offset(self.data_path, self.data_files,
                                  self.data_files_offset)
             self.data_len = len(self.data_files_offset)
@@ -115,8 +110,8 @@ class WBdistDataset(DatasetBase):
             if isinstance(obj, str):
                 return tokenizer.convert_tokens_to_ids(tokenizer.tokenize(obj))
             if isinstance(obj, dict):
-                return dict((n, tokenize(o)) for n, o in obj.items())
-            return list(tokenize(o) for o in obj)
+                return {n: tokenize(o) for n, o in obj.items()}
+            return [tokenize(o) for o in obj]
 
         dialog = tokenize(dialog)
         history = dialog[:-1]
@@ -128,8 +123,7 @@ class WBdistDataset(DatasetBase):
         sequence = [[bos]] + history + [resposne + ([eos] if with_eos else [])]
         sequence = [sequence[0]] + [[speaker2 if i % 2 else speaker1] + s
                                     for i, s in enumerate(sequence[1:])]
-        instance = {}
-        instance["input_ids"] = list(chain(*sequence))
+        instance = {"input_ids": list(chain(*sequence))}
         instance["token_type_ids"] = [bos] + [speaker2 if i % 2 else speaker1 for i, s in
                                               enumerate(sequence[1:])
                                               for _ in s]
@@ -164,7 +158,7 @@ def prepare_files_offset(path, files_list, offset_list):
     elif os.path.isfile(path):  # for single file, its input is a file
         files_list.append(path)
     else:
-        raise RuntimeError(path + " is not a normal file.")
+        raise RuntimeError(f"{path} is not a normal file.")
     for i, f in enumerate(files_list):
         offset = 0
         with open(f, "r", encoding="utf-8") as single_file:

@@ -15,7 +15,7 @@ SPECIAL_TOKENS = ["[CLS]", "[SEP]", "[speaker1]", "[speaker2]"]
 def get_data(tokenizer, dataset_path, dataset_cache, logger):
     """ Get tokenized dataset from COTK or cache."""
     dataset_path = dataset_path or LCCC_URL
-    dataset_cache = dataset_cache + '_' + type(tokenizer).__name__
+    dataset_cache = f'{dataset_cache}_{type(tokenizer).__name__}'
     if dataset_cache and os.path.isfile(dataset_cache):
         logger.info("Load tokenized dataset from cache at %s", dataset_cache)
         dataset = torch.load(dataset_cache)
@@ -33,8 +33,8 @@ def get_data(tokenizer, dataset_path, dataset_cache, logger):
             if isinstance(obj, str):
                 return tokenizer.convert_tokens_to_ids(tokenizer.tokenize(obj))
             if isinstance(obj, dict):
-                return dict((n, tokenize(o)) for n, o in obj.items())
-            return list(tokenize(o) for o in obj)
+                return {n: tokenize(o) for n, o in obj.items()}
+            return [tokenize(o) for o in obj]
 
         dataset = tokenize(dataset)
         torch.save(dataset, dataset_cache)

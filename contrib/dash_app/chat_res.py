@@ -51,8 +51,8 @@ def chat_response(raw_text):
         if isinstance(obj, str):
             return tokenizer.convert_tokens_to_ids(tokenizer.tokenize(obj))
         if isinstance(obj, dict):
-            return dict((n, tokenize(o)) for n, o in obj.items())
-        return list(tokenize(o) for o in obj)
+            return {n: tokenize(o) for n, o in obj.items()}
+        return [tokenize(o) for o in obj]
 
     raw_text = " ".join(list(raw_text.replace(" ", "")))
     history.append(tokenize(raw_text))

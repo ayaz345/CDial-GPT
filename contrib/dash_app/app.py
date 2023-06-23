@@ -83,13 +83,8 @@ def output_text(n_clicks,input1):
     #change input here
     #print(type(input1))
     print(input1)
-    if input1 is None:
-        input1 = "很高兴跟你聊天, 在上面的聊天框跟我讲话吧"
-        #print('good')
-    elif input1 is not None:
-        input1 = chat_response(input1)
-        #print('bad')
-    return 'Posterio:     {}'.format(input1)
+    input1 = "很高兴跟你聊天, 在上面的聊天框跟我讲话吧" if input1 is None else chat_response(input1)
+    return f'Posterio:     {input1}'
 
 #chat output button
 ''' 
@@ -106,20 +101,16 @@ def output_text(n_clicks):
     [State("collapse", "is_open")],
 )
 def toggle_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
+    return not is_open if n else is_open
 
 # this callback uses the current pathname to set the active state of the
 # corresponding nav link to true, allowing users to tell see page they are on
-@app.callback(
-    [Output("page-{}-link".format(i), "active") for i in range(1, 3)],
-    [Input("url", "pathname")],)
+@app.callback([Output(f"page-{i}-link", "active") for i in range(1, 3)], [Input("url", "pathname")])
 def toggle_active_links(pathname):
     if pathname == "/":
         # Treat page 1 as the homepage / index
         return True, False
-    return [pathname == "/page-{}".format(i) for i in range(1, 3)]
+    return [pathname == f"/page-{i}" for i in range(1, 3)]
 
 
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
